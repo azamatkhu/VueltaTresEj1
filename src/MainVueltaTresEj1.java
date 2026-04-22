@@ -6,6 +6,7 @@ public class MainVueltaTresEj1 {
         Scanner sc = new Scanner(System.in);
         Random rand = new Random();
 
+        // Pedimos por el treclado los datos
         System.out.println("Escribe un numero de etapa: ");
         int etapa = sc.nextInt();
         sc.nextLine();
@@ -30,8 +31,10 @@ public class MainVueltaTresEj1 {
         )){
             System.out.println("Conectado!");
 
+            // Deshabilitamos autocommit
             connection.setAutoCommit(false);
             try {
+                // Insertamos la etapa con los datos pedidos
                 String sqlInsertarEtap = "INSERT INTO ETAPA (NUMERO, ORIGEN, DESTINO, DISTANCIA_KM, FECHA) VALUES (?, ?, ?, ?, ?)";
                 PreparedStatement preparedStatement = connection.prepareStatement(sqlInsertarEtap);
                 preparedStatement.setInt(1, etapa);
@@ -42,8 +45,9 @@ public class MainVueltaTresEj1 {
 
                 preparedStatement.executeUpdate();
 
+                // Sacamos el numero de ciclistas para calcular las posiciones
                 int numeroDeCiclistas = 0;
-
+                
                 String sqlCiclistas = "SELECT COUNT(*) FROM CICLISTA";
                 Statement statement = connection.createStatement();
                 ResultSet resultSet = statement.executeQuery(sqlCiclistas);
@@ -52,23 +56,27 @@ public class MainVueltaTresEj1 {
                     numeroDeCiclistas = resultSet.getInt(1);
                 }
 
+                // Una consulta para insertar los etapas con ciclistas en tabla participacion
                 String sqlParticipacion = "INSERT INTO PARTICIPACION(numero_etapa, id_ciclista, posicion, puntos) VALUES (?, ?, ?, ?)";
                 Set<Integer> posiciones = new LinkedHashSet<>();
 
+                // Aqui generamos posiciones aleatorios. He utilizado LinkedHashSet para mantener el orden cuando luego pasamos al arrayList
                 while (posiciones.size() < numeroDeCiclistas) {
                     posiciones.add(rand.nextInt(0, numeroDeCiclistas) + 1);
                 }
 
                 List<Integer> listaPosiciones = new ArrayList<>(posiciones);
 
+                // Aqui vamos insertando las etapas
                 for (int i = 0; i < numeroDeCiclistas; i++) {
                     preparedStatement = connection.prepareStatement(sqlParticipacion);
-
+                    
                     preparedStatement.setInt(1, etapa);
                     preparedStatement.setInt(2, i + 1);
                     int posicion = listaPosiciones.get(i);
                     preparedStatement.setInt(3, posicion);
 
+                    // Calculamos los puntos para ciclista depende de su posicion
                     switch (posicion) {
                         case 1:
                             preparedStatement.setInt(4, 100);
@@ -92,9 +100,11 @@ public class MainVueltaTresEj1 {
 
                     preparedStatement.executeUpdate();
                 }
+                // Al final hacemos un commit
                 connection.commit();
                 System.out.println("Se añadido la etapa!");
             } catch (SQLException e) {
+                // Si algo falla, hacemos un rollback y lanzamos error
                 connection.rollback();
                 throw new RuntimeException(e);
             }
